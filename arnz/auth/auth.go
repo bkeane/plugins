@@ -26,21 +26,22 @@ type Gate struct {
 }
 
 // FromContext extracts the API Gateway context from the provided context.
-func FromContext(ctx context.Context) (events.APIGatewayV2HTTPRequestContext, bool) {
+func FromContext(ctx context.Context) (events.APIGatewayV2HTTPRequestContextAuthorizerIAMDescription, bool) {
 	if ctx == nil {
-		return events.APIGatewayV2HTTPRequestContext{}, false
+		return events.APIGatewayV2HTTPRequestContextAuthorizerIAMDescription{}, false
 	}
 
 	value := ctx.Value(ContextKey)
 	if value == nil {
-		return events.APIGatewayV2HTTPRequestContext{}, false
+		return events.APIGatewayV2HTTPRequestContextAuthorizerIAMDescription{}, false
 	}
 
 	amznCtx, ok := value.(events.APIGatewayV2HTTPRequestContext)
-	return amznCtx, ok
+
+	return *amznCtx.Authorizer.IAM, ok
 }
 
-// IntoContext creates a new context containing the API Gateway context
+// IntoContext returns a new context with the API Gateway HTTP request context injected
 func IntoContext(ctx context.Context, r *http.Request) context.Context {
 	amzReqCtxHeader := r.Header.Get(Header)
 	if amzReqCtxHeader == "" || amzReqCtxHeader == "null" {

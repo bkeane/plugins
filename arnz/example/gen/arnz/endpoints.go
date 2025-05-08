@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package arnz
 
@@ -21,6 +21,7 @@ type Endpoints struct {
 	Update goa.Endpoint
 	Delete goa.Endpoint
 	Health goa.Endpoint
+	Caller goa.Endpoint
 }
 
 // NewEndpoints wraps the methods of the "Arnz" service with endpoints.
@@ -31,6 +32,7 @@ func NewEndpoints(s Service) *Endpoints {
 		Update: NewUpdateEndpoint(s),
 		Delete: NewDeleteEndpoint(s),
 		Health: NewHealthEndpoint(s),
+		Caller: NewCallerEndpoint(s),
 	}
 }
 
@@ -41,6 +43,7 @@ func (e *Endpoints) Use(m func(goa.Endpoint) goa.Endpoint) {
 	e.Update = m(e.Update)
 	e.Delete = m(e.Delete)
 	e.Health = m(e.Health)
+	e.Caller = m(e.Caller)
 }
 
 // NewCreateEndpoint returns an endpoint function that calls the method
@@ -80,5 +83,13 @@ func NewDeleteEndpoint(s Service) goa.Endpoint {
 func NewHealthEndpoint(s Service) goa.Endpoint {
 	return func(ctx context.Context, req any) (any, error) {
 		return s.Health(ctx)
+	}
+}
+
+// NewCallerEndpoint returns an endpoint function that calls the method
+// "caller" of service "Arnz".
+func NewCallerEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.Caller(ctx)
 	}
 }

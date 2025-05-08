@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package arnz
 
@@ -24,6 +24,8 @@ type Service interface {
 	Delete(context.Context) (res *ResponseBody, err error)
 	// Health implements health.
 	Health(context.Context) (res *ResponseBody, err error)
+	// Caller implements caller.
+	Caller(context.Context) (res *IntrospectResponse, err error)
 }
 
 // APIName is the name of the API as defined in the design.
@@ -40,7 +42,12 @@ const ServiceName = "Arnz"
 // MethodNames lists the service method names as defined in the design. These
 // are the same values that are set in the endpoint request contexts under the
 // MethodKey key.
-var MethodNames = [5]string{"create", "read", "update", "delete", "health"}
+var MethodNames = [6]string{"create", "read", "update", "delete", "health", "caller"}
+
+// IntrospectResponse is the result type of the Arnz service caller method.
+type IntrospectResponse struct {
+	Caller string
+}
 
 // ResponseBody is the result type of the Arnz service create method.
 type ResponseBody struct {

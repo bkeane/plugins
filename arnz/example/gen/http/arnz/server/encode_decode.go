@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package server
 
@@ -71,6 +71,18 @@ func EncodeHealthResponse(encoder func(context.Context, http.ResponseWriter) goa
 		res, _ := v.(*arnz.ResponseBody)
 		enc := encoder(ctx, w)
 		body := NewHealthResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeCallerResponse returns an encoder for responses returned by the Arnz
+// caller endpoint.
+func EncodeCallerResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*arnz.IntrospectResponse)
+		enc := encoder(ctx, w)
+		body := NewCallerResponseBody(res)
 		w.WriteHeader(http.StatusOK)
 		return enc.Encode(body)
 	}

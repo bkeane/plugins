@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"regexp"
@@ -9,8 +10,14 @@ import (
 )
 
 const (
-	header = "X-Amzn-Request-Context"
+	Header = "X-Amzn-Request-Context"
 )
+
+// contextKeyType is an unexported type for context keys to avoid collisions
+type contextKeyType struct{}
+
+// ContextKey is the key used to store API Gateway context in the context.Context
+var ContextKey = contextKeyType{}
 
 type Gate struct {
 	MethodName        string
@@ -18,41 +25,72 @@ type Gate struct {
 	AllowArnsMatching []string
 }
 
+// FromContext extracts the API Gateway context from the provided context.
+func FromContext(ctx context.Context) (events.APIGatewayV2HTTPRequestContext, bool) {
+	if ctx == nil {
+		return events.APIGatewayV2HTTPRequestContext{}, false
+	}
+
+	value := ctx.Value(ContextKey)
+	if value == nil {
+		return events.APIGatewayV2HTTPRequestContext{}, false
+	}
+
+	amznCtx, ok := value.(events.APIGatewayV2HTTPRequestContext)
+	return amznCtx, ok
+}
+
+// IntoContext creates a new context containing the API Gateway context
+func IntoContext(ctx context.Context, r *http.Request) context.Context {
+	amzReqCtxHeader := r.Header.Get(Header)
+	if amzReqCtxHeader == "" || amzReqCtxHeader == "null" {
+		return ctx
+	}
+
+	var amznCtx events.APIGatewayV2HTTPRequestContext
+	err := json.Unmarshal([]byte(amzReqCtxHeader), &amznCtx)
+	if err != nil {
+		return ctx
+	}
+
+	return context.WithValue(ctx, ContextKey, amznCtx)
+}
+
 func IsUnsigned(r *http.Request) (pass bool) {
-	return r.Header.Get(header) == "" || r.Header.Get(header) == "null"
+	return r.Header.Get(Header) == "" || r.Header.Get(Header) == "null"
 }
 
 func Authenticate(w http.ResponseWriter, r *http.Request) (caller *string, pass bool) {
-	var amzCtx events.APIGatewayV2HTTPRequestContext
-	amzReqCtxHeader := r.Header.Get(header)
+	var amznCtx events.APIGatewayV2HTTPRequestContext
+	amzReqCtxHeader := r.Header.Get(Header)
 
 	if IsUnsigned(r) {
 		WriteUnauthenticated(w, "caller not authenticated")
 		return
 	}
 
-	err := json.Unmarshal([]byte(amzReqCtxHeader), &amzCtx)
+	err := json.Unmarshal([]byte(amzReqCtxHeader), &amznCtx)
 	if err != nil {
 		WriteUnauthenticated(w, "failed to unmarshal X-Amzn-Request-Context header")
 		return
 	}
 
-	if amzCtx.Authorizer == nil {
+	if amznCtx.Authorizer == nil {
 		WriteUnauthenticated(w, "no Authorizer defined in X-Amzn-Request-Context")
 		return
 	}
 
-	if amzCtx.Authorizer.IAM == nil {
+	if amznCtx.Authorizer.IAM == nil {
 		WriteUnauthenticated(w, "no IAM defined in X-Amzn-Request-Context")
 		return
 	}
 
-	if amzCtx.Authorizer.IAM.UserARN == "" {
+	if amznCtx.Authorizer.IAM.UserARN == "" {
 		WriteUnauthenticated(w, "no UserARN defined in X-Amzn-Request-Context")
 		return
 	}
 
-	return &amzCtx.Authorizer.IAM.UserARN, true
+	return &amznCtx.Authorizer.IAM.UserARN, true
 }
 
 func Authorize(w http.ResponseWriter, callerArn string, matchers []string) (pass bool) {

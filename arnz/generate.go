@@ -18,7 +18,19 @@ func init() {
 
 func Generate(genpkg string, roots []eval.Root, files []*codegen.File) ([]*codegen.File, error) {
 	for _, file := range files {
+		codegen.AddImport(file.SectionTemplates[0],
+			&codegen.ImportSpec{Path: "encoding/json"},
+			&codegen.ImportSpec{Path: "strings"},
+			&codegen.ImportSpec{Path: "github.com/aws/aws-lambda-go/events"},
+			&codegen.ImportSpec{Path: "goa.design/plugins/v3/arnz/auth"},
+		)
+
 		if filepath.Base(file.Path) == "server.go" {
+			for _, s := range file.Section("server-handler-init") {
+				target := `ctx = context.WithValue(ctx, goa.ServiceKey, {{ printf "%q" .ServiceName }})`
+				s.Source = strings.Replace(s.Source, target, target+authCtx, 1)
+			}
+
 			for _, s := range file.Section("server-handler") {
 				data, ok := s.Data.(*goahttp.EndpointData)
 				if !ok {
@@ -31,13 +43,6 @@ func Generate(genpkg string, roots []eval.Root, files []*codegen.File) ([]*codeg
 						gateDefined = true
 					}
 				}
-
-				codegen.AddImport(file.SectionTemplates[0],
-					&codegen.ImportSpec{Path: "encoding/json"},
-					&codegen.ImportSpec{Path: "strings"},
-					&codegen.ImportSpec{Path: "github.com/aws/aws-lambda-go/events"},
-					&codegen.ImportSpec{Path: "goa.design/plugins/v3/arnz/auth"},
-				)
 
 				if gateDefined {
 					file.SectionTemplates = append(file.SectionTemplates, &codegen.SectionTemplate{
@@ -66,6 +71,10 @@ func Generate(genpkg string, roots []eval.Root, files []*codegen.File) ([]*codeg
 	}
 	return files, nil
 }
+
+const authCtx = `
+	ctx = auth.IntoContext(ctx, r)
+`
 
 const defaultGate = `
 {{ printf "for authorization based on AWS ARNs" | comment }}

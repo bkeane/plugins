@@ -14,6 +14,11 @@ var CrudResponse = Type("ResponseBody", func() {
 	Required("action")
 })
 
+var IntrospectResponse = Type("IntrospectResponse", func() {
+	Attribute("caller", String)
+	Required("caller")
+})
+
 var _ = API("Arnz", func() {})
 
 var _ = Service("Arnz", func() {
@@ -58,6 +63,16 @@ var _ = Service("Arnz", func() {
 		Result(CrudResponse)
 		HTTP(func() {
 			GET("/health")
+			Response(StatusOK)
+		})
+	})
+
+	Method("caller", func() {
+		arnz.AllowArnsMatching(Admin...)
+		arnz.AllowUnsignedCallers()
+		Result(IntrospectResponse)
+		HTTP(func() {
+			GET("/caller")
 			Response(StatusOK)
 		})
 	})

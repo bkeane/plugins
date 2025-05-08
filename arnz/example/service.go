@@ -3,6 +3,7 @@ package example
 import (
 	"context"
 
+	"goa.design/plugins/v3/arnz/auth"
 	genarnz "goa.design/plugins/v3/arnz/example/gen/arnz"
 )
 
@@ -26,4 +27,12 @@ func (s *Service) Delete(ctx context.Context) (res *genarnz.ResponseBody, err er
 
 func (s *Service) Health(ctx context.Context) (res *genarnz.ResponseBody, err error) {
 	return &genarnz.ResponseBody{Action: "healthy!"}, nil
+}
+
+func (s *Service) Caller(ctx context.Context) (res *genarnz.IntrospectResponse, err error) {
+	amznCtx, ok := auth.FromContext(ctx)
+	if !ok {
+		return &genarnz.IntrospectResponse{Caller: "unsigned"}, nil
+	}
+	return &genarnz.IntrospectResponse{Caller: amznCtx.Authorizer.IAM.UserARN}, nil
 }

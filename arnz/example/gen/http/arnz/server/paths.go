@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package server
 
@@ -31,4 +31,9 @@ func DeleteArnzPath() string {
 // HealthArnzPath returns the URL path to the Arnz service health HTTP endpoint.
 func HealthArnzPath() string {
 	return "/health"
+}
+
+// CallerArnzPath returns the URL path to the Arnz service caller HTTP endpoint.
+func CallerArnzPath() string {
+	return "/caller"
 }

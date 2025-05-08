@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package server
 
@@ -26,6 +26,7 @@ type Server struct {
 	Update http.Handler
 	Delete http.Handler
 	Health http.Handler
+	Caller http.Handler
 }
 
 // MountPoint holds information about the mounted endpoints.
@@ -60,12 +61,14 @@ func New(
 			{"Update", "PUT", "/"},
 			{"Delete", "DELETE", "/"},
 			{"Health", "GET", "/health"},
+			{"Caller", "GET", "/caller"},
 		},
 		Create: NewCreateHandler(e.Create, mux, decoder, encoder, errhandler, formatter),
 		Read:   NewReadHandler(e.Read, mux, decoder, encoder, errhandler, formatter),
 		Update: NewUpdateHandler(e.Update, mux, decoder, encoder, errhandler, formatter),
 		Delete: NewDeleteHandler(e.Delete, mux, decoder, encoder, errhandler, formatter),
 		Health: NewHealthHandler(e.Health, mux, decoder, encoder, errhandler, formatter),
+		Caller: NewCallerHandler(e.Caller, mux, decoder, encoder, errhandler, formatter),
 	}
 }
 
@@ -79,6 +82,7 @@ func (s *Server) Use(m func(http.Handler) http.Handler) {
 	s.Update = m(s.Update)
 	s.Delete = m(s.Delete)
 	s.Health = m(s.Health)
+	s.Caller = m(s.Caller)
 }
 
 // MethodNames returns the methods served.
@@ -91,6 +95,7 @@ func Mount(mux goahttp.Muxer, h *Server) {
 	MountUpdateHandler(mux, h.Update)
 	MountDeleteHandler(mux, h.Delete)
 	MountHealthHandler(mux, h.Health)
+	MountCallerHandler(mux, h.Caller)
 }
 
 // Mount configures the mux to serve the Arnz endpoints.
@@ -128,6 +133,7 @@ func NewCreateHandler(
 		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
 		ctx = context.WithValue(ctx, goa.MethodKey, "create")
 		ctx = context.WithValue(ctx, goa.ServiceKey, "Arnz")
+		ctx = auth.IntoContext(ctx, r)
 		var err error
 		res, err := endpoint(ctx, nil)
 		if err != nil {
@@ -172,6 +178,7 @@ func NewReadHandler(
 		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
 		ctx = context.WithValue(ctx, goa.MethodKey, "read")
 		ctx = context.WithValue(ctx, goa.ServiceKey, "Arnz")
+		ctx = auth.IntoContext(ctx, r)
 		var err error
 		res, err := endpoint(ctx, nil)
 		if err != nil {
@@ -216,6 +223,7 @@ func NewUpdateHandler(
 		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
 		ctx = context.WithValue(ctx, goa.MethodKey, "update")
 		ctx = context.WithValue(ctx, goa.ServiceKey, "Arnz")
+		ctx = auth.IntoContext(ctx, r)
 		var err error
 		res, err := endpoint(ctx, nil)
 		if err != nil {
@@ -260,6 +268,7 @@ func NewDeleteHandler(
 		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
 		ctx = context.WithValue(ctx, goa.MethodKey, "delete")
 		ctx = context.WithValue(ctx, goa.ServiceKey, "Arnz")
+		ctx = auth.IntoContext(ctx, r)
 		var err error
 		res, err := endpoint(ctx, nil)
 		if err != nil {
@@ -304,6 +313,52 @@ func NewHealthHandler(
 		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
 		ctx = context.WithValue(ctx, goa.MethodKey, "health")
 		ctx = context.WithValue(ctx, goa.ServiceKey, "Arnz")
+		ctx = auth.IntoContext(ctx, r)
+		var err error
+		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountCallerHandler configures the mux to serve the "Arnz" service "caller"
+// endpoint.
+func MountCallerHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("GET", "/caller", callerArnz(f))
+}
+
+// NewCallerHandler creates a HTTP handler which loads the HTTP request and
+// calls the "Arnz" service "caller" endpoint.
+func NewCallerHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeCallerResponse(encoder)
+		encodeError    = goahttp.ErrorEncoder(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "caller")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "Arnz")
+		ctx = auth.IntoContext(ctx, r)
 		var err error
 		res, err := endpoint(ctx, nil)
 		if err != nil {
@@ -397,6 +452,27 @@ func healthArnz(handler http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		if _, pass := auth.Authenticate(w, r); !pass {
+			return
+		}
+		handler(w, r)
+	}
+}
+
+// for authorization based on AWS ARNs
+func callerArnz(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if auth.IsUnsigned(r) {
+			handler(w, r)
+			return
+		}
+		callerArn, pass := auth.Authenticate(w, r)
+		if !pass {
+			return
+		}
+		allowArnsMatching := []string{
+			`^arn:aws:iam::123456789012:user/administrator$`,
+		}
+		if !auth.Authorize(w, *callerArn, allowArnsMatching) {
 			return
 		}
 		handler(w, r)

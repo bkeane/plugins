@@ -97,6 +97,30 @@ func TestSigned(t *testing.T) {
 	}
 }
 
+func TestIntrospectSigned(t *testing.T) {
+	ts := httptest.NewServer(server(8080).Handler)
+	defer ts.Close()
+
+	resp := signed(t, "GET", ts.URL+"/caller", admin)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	bytes, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "{\"caller\":\""+admin+"\"}\n", string(bytes))
+}
+
+func TestIntrospectUnsigned(t *testing.T) {
+	ts := httptest.NewServer(server(8080).Handler)
+	defer ts.Close()
+
+	resp := unsigned(t, "GET", ts.URL+"/caller")
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	bytes, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "{\"caller\":\"unsigned\"}\n", string(bytes))
+}
+
 func unsigned(t *testing.T, verb, url string) *http.Response {
 	req, err := http.NewRequest(verb, url, nil)
 	if err != nil {

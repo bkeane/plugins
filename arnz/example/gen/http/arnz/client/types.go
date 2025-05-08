@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package client
 
@@ -41,6 +41,12 @@ type DeleteResponseBody struct {
 // response body.
 type HealthResponseBody struct {
 	Action *string `form:"action,omitempty" json:"action,omitempty" xml:"action,omitempty"`
+}
+
+// CallerResponseBody is the type of the "Arnz" service "caller" endpoint HTTP
+// response body.
+type CallerResponseBody struct {
+	Caller *string `form:"caller,omitempty" json:"caller,omitempty" xml:"caller,omitempty"`
 }
 
 // NewCreateResponseBodyOK builds a "Arnz" service "create" endpoint result
@@ -93,6 +99,16 @@ func NewHealthResponseBodyOK(body *HealthResponseBody) *arnz.ResponseBody {
 	return v
 }
 
+// NewCallerIntrospectResponseOK builds a "Arnz" service "caller" endpoint
+// result from a HTTP "OK" response.
+func NewCallerIntrospectResponseOK(body *CallerResponseBody) *arnz.IntrospectResponse {
+	v := &arnz.IntrospectResponse{
+		Caller: *body.Caller,
+	}
+
+	return v
+}
+
 // ValidateCreateResponseBody runs the validations defined on CreateResponseBody
 func ValidateCreateResponseBody(body *CreateResponseBody) (err error) {
 	if body.Action == nil {
@@ -129,6 +145,14 @@ func ValidateDeleteResponseBody(body *DeleteResponseBody) (err error) {
 func ValidateHealthResponseBody(body *HealthResponseBody) (err error) {
 	if body.Action == nil {
 		err = goa.MergeErrors(err, goa.MissingFieldError("action", "body"))
+	}
+	return
+}
+
+// ValidateCallerResponseBody runs the validations defined on CallerResponseBody
+func ValidateCallerResponseBody(body *CallerResponseBody) (err error) {
+	if body.Caller == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("caller", "body"))
 	}
 	return
 }

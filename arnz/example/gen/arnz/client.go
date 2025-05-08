@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package arnz
 
@@ -21,16 +21,18 @@ type Client struct {
 	UpdateEndpoint goa.Endpoint
 	DeleteEndpoint goa.Endpoint
 	HealthEndpoint goa.Endpoint
+	CallerEndpoint goa.Endpoint
 }
 
 // NewClient initializes a "Arnz" service client given the endpoints.
-func NewClient(create, read, update, delete_, health goa.Endpoint) *Client {
+func NewClient(create, read, update, delete_, health, caller goa.Endpoint) *Client {
 	return &Client{
 		CreateEndpoint: create,
 		ReadEndpoint:   read,
 		UpdateEndpoint: update,
 		DeleteEndpoint: delete_,
 		HealthEndpoint: health,
+		CallerEndpoint: caller,
 	}
 }
 
@@ -82,4 +84,14 @@ func (c *Client) Health(ctx context.Context) (res *ResponseBody, err error) {
 		return
 	}
 	return ires.(*ResponseBody), nil
+}
+
+// Caller calls the "caller" endpoint of the "Arnz" service.
+func (c *Client) Caller(ctx context.Context) (res *IntrospectResponse, err error) {
+	var ires any
+	ires, err = c.CallerEndpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*IntrospectResponse), nil
 }

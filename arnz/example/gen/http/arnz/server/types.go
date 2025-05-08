@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package server
 
@@ -40,6 +40,12 @@ type DeleteResponseBody struct {
 // response body.
 type HealthResponseBody struct {
 	Action string `form:"action" json:"action" xml:"action"`
+}
+
+// CallerResponseBody is the type of the "Arnz" service "caller" endpoint HTTP
+// response body.
+type CallerResponseBody struct {
+	Caller string `form:"caller" json:"caller" xml:"caller"`
 }
 
 // NewCreateResponseBody builds the HTTP response body from the result of the
@@ -83,6 +89,15 @@ func NewDeleteResponseBody(res *arnz.ResponseBody) *DeleteResponseBody {
 func NewHealthResponseBody(res *arnz.ResponseBody) *HealthResponseBody {
 	body := &HealthResponseBody{
 		Action: res.Action,
+	}
+	return body
+}
+
+// NewCallerResponseBody builds the HTTP response body from the result of the
+// "caller" endpoint of the "Arnz" service.
+func NewCallerResponseBody(res *arnz.IntrospectResponse) *CallerResponseBody {
+	body := &CallerResponseBody{
+		Caller: res.Caller,
 	}
 	return body
 }

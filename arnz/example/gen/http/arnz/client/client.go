@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package client
 
@@ -33,6 +33,9 @@ type Client struct {
 	// Health Doer is the HTTP client used to make requests to the health endpoint.
 	HealthDoer goahttp.Doer
 
+	// Caller Doer is the HTTP client used to make requests to the caller endpoint.
+	CallerDoer goahttp.Doer
+
 	// RestoreResponseBody controls whether the response bodies are reset after
 	// decoding so they can be read again.
 	RestoreResponseBody bool
@@ -58,6 +61,7 @@ func NewClient(
 		UpdateDoer:          doer,
 		DeleteDoer:          doer,
 		HealthDoer:          doer,
+		CallerDoer:          doer,
 		RestoreResponseBody: restoreBody,
 		scheme:              scheme,
 		host:                host,
@@ -156,6 +160,25 @@ func (c *Client) Health() goa.Endpoint {
 		resp, err := c.HealthDoer.Do(req)
 		if err != nil {
 			return nil, goahttp.ErrRequestError("Arnz", "health", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// Caller returns an endpoint that makes HTTP requests to the Arnz service
+// caller server.
+func (c *Client) Caller() goa.Endpoint {
+	var (
+		decodeResponse = DecodeCallerResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildCallerRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.CallerDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("Arnz", "caller", err)
 		}
 		return decodeResponse(resp)
 	}

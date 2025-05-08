@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package client
 
@@ -289,6 +289,61 @@ func DecodeHealthResponse(decoder func(*http.Response) goahttp.Decoder, restoreB
 		default:
 			body, _ := io.ReadAll(resp.Body)
 			return nil, goahttp.ErrInvalidResponse("Arnz", "health", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildCallerRequest instantiates a HTTP request object with method and path
+// set to call the "Arnz" service "caller" endpoint
+func (c *Client) BuildCallerRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: CallerArnzPath()}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("Arnz", "caller", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeCallerResponse returns a decoder for responses returned by the Arnz
+// caller endpoint. restoreBody controls whether the response body should be
+// restored after having been read.
+func DecodeCallerResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body CallerResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("Arnz", "caller", err)
+			}
+			err = ValidateCallerResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("Arnz", "caller", err)
+			}
+			res := NewCallerIntrospectResponseOK(&body)
+			return res, nil
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("Arnz", "caller", resp.StatusCode, string(body))
 		}
 	}
 }

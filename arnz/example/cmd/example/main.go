@@ -16,8 +16,8 @@ func main() {
 }
 
 func server(port int) *http.Server {
-	mux := goahttp.NewMuxer()
 	svc := &example.Service{}
+	mux := goahttp.NewMuxer()
 	endpoints := genarnz.NewEndpoints(svc)
 	api := arnzhttp.New(endpoints, mux, goahttp.RequestDecoder, goahttp.ResponseEncoder, nil, nil)
 	api.Mount(mux)

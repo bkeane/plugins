@@ -20,7 +20,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ResponseBody'
                             example:
-                                action: Voluptas fuga.
+                                action: Temporibus nostrum modi fugit praesentium aut aliquam.
         get:
             tags:
                 - Arnz
@@ -34,7 +34,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ResponseBody'
                             example:
-                                action: Atque fugit vero quo aut cupiditate.
+                                action: Est nam aut dolor id praesentium.
         post:
             tags:
                 - Arnz
@@ -48,7 +48,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ResponseBody'
                             example:
-                                action: Numquam fugit omnis cum ut.
+                                action: Atque fugit vero quo aut cupiditate.
         put:
             tags:
                 - Arnz
@@ -62,7 +62,22 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ResponseBody'
                             example:
-                                action: Est nam aut dolor id praesentium.
+                                action: Voluptas fuga.
+    /caller:
+        get:
+            tags:
+                - Arnz
+            summary: caller Arnz
+            operationId: Arnz#caller
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/IntrospectResponse'
+                            example:
+                                caller: Repellendus vitae non.
     /health:
         get:
             tags:
@@ -77,17 +92,27 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ResponseBody'
                             example:
-                                action: Temporibus nostrum modi fugit praesentium aut aliquam.
+                                action: Voluptates voluptate quis est nobis.
 components:
     schemas:
+        IntrospectResponse:
+            type: object
+            properties:
+                caller:
+                    type: string
+                    example: Beatae nulla qui aut.
+            example:
+                caller: Labore mollitia nihil architecto et.
+            required:
+                - caller
         ResponseBody:
             type: object
             properties:
                 action:
                     type: string
-                    example: Vel sit nihil velit possimus.
+                    example: Quos hic dolorum quisquam aliquid.
             example:
-                action: Provident nulla.
+                action: Minus itaque hic at autem est.
             required:
                 - action
 tags:

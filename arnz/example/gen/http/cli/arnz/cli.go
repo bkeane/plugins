@@ -4,7 +4,7 @@
 //
 // Command:
 // $ goa gen goa.design/plugins/v3/arnz/example/design -o
-// $(GOPATH)/src/goa.design/plugins/arnz//example
+// /Users/bkeane/Git/plugins/arnz//example
 
 package cli
 
@@ -23,7 +23,7 @@ import (
 //
 //	command (subcommand1|subcommand2|...)
 func UsageCommands() string {
-	return `arnz (create|read|update|delete|health)
+	return `arnz (create|read|update|delete|health|caller)
 `
 }
 
@@ -54,6 +54,8 @@ func ParseEndpoint(
 		arnzDeleteFlags = flag.NewFlagSet("delete", flag.ExitOnError)
 
 		arnzHealthFlags = flag.NewFlagSet("health", flag.ExitOnError)
+
+		arnzCallerFlags = flag.NewFlagSet("caller", flag.ExitOnError)
 	)
 	arnzFlags.Usage = arnzUsage
 	arnzCreateFlags.Usage = arnzCreateUsage
@@ -61,6 +63,7 @@ func ParseEndpoint(
 	arnzUpdateFlags.Usage = arnzUpdateUsage
 	arnzDeleteFlags.Usage = arnzDeleteUsage
 	arnzHealthFlags.Usage = arnzHealthUsage
+	arnzCallerFlags.Usage = arnzCallerUsage
 
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
 		return nil, nil, err
@@ -111,6 +114,9 @@ func ParseEndpoint(
 			case "health":
 				epf = arnzHealthFlags
 
+			case "caller":
+				epf = arnzCallerFlags
+
 			}
 
 		}
@@ -146,6 +152,8 @@ func ParseEndpoint(
 				endpoint = c.Delete()
 			case "health":
 				endpoint = c.Health()
+			case "caller":
+				endpoint = c.Caller()
 			}
 		}
 	}
@@ -168,6 +176,7 @@ COMMAND:
     update: Update implements update.
     delete: Delete implements delete.
     health: Health implements health.
+    caller: Caller implements caller.
 
 Additional help:
     %[1]s arnz COMMAND --help
@@ -220,5 +229,15 @@ Health implements health.
 
 Example:
     %[1]s arnz health
+`, os.Args[0])
+}
+
+func arnzCallerUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] arnz caller
+
+Caller implements caller.
+
+Example:
+    %[1]s arnz caller
 `, os.Args[0])
 }
